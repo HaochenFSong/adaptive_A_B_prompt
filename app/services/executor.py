@@ -11,7 +11,8 @@ class ExecutorService:
     def __init__(self, clarifier_service: ClarifierService) -> None:
         self._clarifier_service = clarifier_service
         self._backend = os.getenv("PROMPT_COACH_BACKEND", "mock").lower()
-        self._model = os.getenv("PROMPT_COACH_MODEL", "gpt-4.1-nano")
+        self._model = os.getenv("PROMPT_COACH_ANSWER_MODEL", os.getenv("PROMPT_COACH_MODEL", "gpt-4.1-nano"))
+        self._web_enabled = os.getenv("PROMPT_COACH_ENABLE_WEB_SEARCH", "true").lower() in {"1", "true", "yes"}
         self._api_key = os.getenv("OPENAI_API_KEY")
         self._client: Any | None = None
 
@@ -51,12 +52,7 @@ class ExecutorService:
                 raise ValueError("OPENAI_API_KEY is required when PROMPT_COACH_BACKEND=openai")
             assert self._client is not None
             try:
-                response = self._client.responses.create(
-                    model=self._model,
-                    input=prompt,
-                    temperature=0.4,
-                    max_output_tokens=500,
-                )
+                response = self._create_response_with_optional_web(prompt, self._model)
                 output = getattr(response, "output_text", None)
                 if output and output.strip():
                     return output.strip()
@@ -68,3 +64,34 @@ class ExecutorService:
             f"[Mock execution {variant}] This is where the selected prompt is run against a chat model. "
             f"Prompt used: {prompt}"
         )
+
+    def _create_response_with_optional_web(self, prompt: str, model: str) -> Any:
+        assert self._client is not None
+        input_payload = [
+            {
+                "role": "system",
+                "content": (
+                    "You are a helpful assistant. For time-sensitive or location-sensitive requests, "
+                    "use live web search to ground the answer in current information."
+                ),
+            },
+            {"role": "user", "content": prompt},
+        ]
+
+        kwargs: dict[str, Any] = {
+            "model": model,
+            "input": input_payload,
+            "temperature": 0.4,
+            "max_output_tokens": 500,
+        }
+        if self._web_enabled:
+            kwargs["tools"] = [{"type": "web_search_preview"}]
+
+        try:
+            return self._client.responses.create(**kwargs)
+        except Exception:
+            # Fallback to a web-capable default model if configured model fails with web tools.
+            if self._web_enabled and model != "gpt-4.1-mini":
+                kwargs["model"] = "gpt-4.1-mini"
+                return self._client.responses.create(**kwargs)
+            raise

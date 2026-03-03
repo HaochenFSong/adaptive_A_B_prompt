@@ -25,41 +25,35 @@ TIME_HINTS = {"today", "tonight", "tomorrow", "week", "month", "deadline"}
 LOCATION_HINTS = {"near", "nearby", "around", "in", "at", "location", "city"}
 SELECTION_QUESTION = "Do you want Answer A, Answer B, or both?"
 
-CLARIFIER_SYSTEM_PROMPT = """You are a Prompt Clarifier / Prompt Coach.
+CLARIFIER_SYSTEM_PROMPT = """You are Prompt Coach.
 
-Before answering any user question, do the following:
+When the user writes something, before answering:
+1. Echo back version A and version B of the prompt.
+2. Then ask: "Do you want Answer A, Answer B, or both?"
 
-1. Generate Prompt A:
-- Clarify what the user likely means.
-- Make explicit any assumptions the model must infer.
-- Identify ambiguities.
-- State the likely underlying goal.
-- Rewrite the question in a sharper, more precise form.
+Use good judgment to generate two short visions that maximize user success and satisfaction.
 
-2. Generate Prompt B:
-- Reframe the problem at a higher level.
-- Surface deeper objectives, identity implications, or long-term optimization.
-- Challenge the framing if appropriate.
-- Offer a version that may better achieve the user's deeper goal.
+Goals for A/B generation:
+- Make explicit what the model must infer.
+- Identify the likely underlying goal.
+- Surface ambiguities and assumptions.
+- Generate improved alternative prompts.
+- Offer prompt B as a reframed problem that may better achieve the deeper objective.
 
-Keep both A and B concise and clear.
-Hard length limits:
-- prompt_a_clarified: max 45 words
-- prompt_b_vision: max 45 words
-- why_a and why_b: one short sentence each
+Strict output style for A and B:
+- Keep each option short (8-22 words).
+- Both must be questions ending with "?".
+- Keep the same tone, POV, and casing style as the original message.
+- Never use third-person meta language like "the user", "does the user", "is the user".
 
-Then ask:
-\"Do you want Answer A, Answer B, or both?\"
-
-Do not answer the question until the user chooses.
-
-If the user explicitly says \"skip clarification\" or \"just answer,\" then answer normally.
+Do not answer the user's task in clarify step.
+Do not ask any follow-up other than: "Do you want Answer A, Answer B, or both?"
 
 Return only valid JSON with exactly these keys:
 - latent_goal: string
 - model_interpretations: array of strings
-- assumptions: array of strings (use [\"none\"] only if truly none)
-- ambiguities: array of strings (use [\"none\"] only if truly none)
+- assumptions: array of strings (use ["none"] only if truly none)
+- ambiguities: array of strings (use ["none"] only if truly none)
 - prompt_a_clarified: string
 - prompt_b_vision: string
 - why_a: string
@@ -143,9 +137,24 @@ class ClarifierService:
 
         parsed = self._parse_json(text)
         response = ClarifyResponse(**parsed)
+        response.prompt_a_clarified = self._normalize_as_question(
+            response.prompt_a_clarified,
+            source_message=message,
+            variant="A",
+        )
+        response.prompt_b_vision = self._normalize_as_question(
+            response.prompt_b_vision,
+            source_message=message,
+            variant="B",
+        )
         response.follow_up_questions = self._normalize_followups(response.follow_up_questions)
         response.assumptions = response.assumptions or ["none"]
         response.ambiguities = response.ambiguities or ["none"]
+        response.prompt_a_clarified, response.prompt_b_vision = self._finalize_variants(
+            response.prompt_a_clarified,
+            response.prompt_b_vision,
+            message,
+        )
         return response
 
     def _parse_json(self, raw_text: str) -> dict[str, Any]:
@@ -176,6 +185,9 @@ class ClarifierService:
         if not self._vision_b_valid(prompt_a, prompt_b):
             prompt_b = self._build_prompt_b(message, latent_goal, force_shift=True)
 
+        prompt_a = self._normalize_as_question(prompt_a, source_message=message, variant="A")
+        prompt_b = self._normalize_as_question(prompt_b, source_message=message, variant="B")
+        prompt_a, prompt_b = self._finalize_variants(prompt_a, prompt_b, message)
         follow_up_questions = self._normalize_followups(self._follow_up_questions(ambiguities, message))
         confidence = self._confidence(ambiguities, assumptions)
 
@@ -193,13 +205,123 @@ class ClarifierService:
         )
 
     def _normalize_followups(self, questions: list[str]) -> list[str]:
-        cleaned = [q.strip() for q in questions if q and q.strip()]
-        if SELECTION_QUESTION not in cleaned:
-            if len(cleaned) >= 2:
-                cleaned = [cleaned[0], SELECTION_QUESTION]
+        _ = questions
+        return [SELECTION_QUESTION]
+
+    def _normalize_as_question(self, text: str, source_message: str, variant: str) -> str:
+        cleaned = " ".join((text or "").split()).strip()
+        if not cleaned:
+            return self._fallback_question(source_message, variant)
+
+        if "?" in cleaned:
+            first_question = cleaned.split("?", 1)[0].strip()
+            if first_question:
+                cleaned = f"{first_question}?"
             else:
-                cleaned.append(SELECTION_QUESTION)
-        return cleaned[:2]
+                cleaned = ""
+        else:
+            cleaned = f"{cleaned.rstrip('.!;: ')}?"
+
+        if self._contains_meta_user_phrasing(cleaned):
+            return self._fallback_question(source_message, variant)
+
+        return self._match_source_tone(cleaned, source_message)
+
+    def _finalize_variants(self, prompt_a: str, prompt_b: str, source_message: str) -> tuple[str, str]:
+        source_q = self._normalize_source_question(source_message)
+        norm_source = self._canonicalize(source_q)
+
+        a = prompt_a
+        b = prompt_b
+        if self._canonicalize(a) == norm_source:
+            a = self._build_clarified_from_source(source_message)
+        if self._canonicalize(b) in {norm_source, self._canonicalize(a)}:
+            b = self._build_reframed_from_source(source_message)
+
+        if self._contains_meta_user_phrasing(a) or self._looks_like_meta_instruction(a):
+            a = self._build_clarified_from_source(source_message)
+        if self._contains_meta_user_phrasing(b) or self._looks_like_meta_instruction(b):
+            b = self._build_reframed_from_source(source_message)
+
+        a = self._normalize_as_question(a, source_message=source_message, variant="A")
+        b = self._normalize_as_question(b, source_message=source_message, variant="B")
+        return a, b
+
+    def _canonicalize(self, text: str) -> str:
+        return re.sub(r"[^a-z0-9]+", "", text.lower())
+
+    def _contains_meta_user_phrasing(self, text: str) -> bool:
+        lowered = text.lower()
+        if "the user" in lowered or "a user" in lowered or "this user" in lowered:
+            return True
+        return bool(
+            re.search(
+                r"^(does|is|are|should|can|could|would|will|did)\s+(the user|a user|this user)\b",
+                lowered,
+            )
+        )
+
+    def _looks_like_meta_instruction(self, text: str) -> bool:
+        lowered = text.lower()
+        signals = (
+            "clarify and answer this request",
+            "interpret the deeper objective",
+            "reframe the user request",
+            "original request:",
+            "before answering",
+            "optimize for that outcome",
+        )
+        return any(signal in lowered for signal in signals)
+
+    def _fallback_question(self, source_message: str, variant: str) -> str:
+        base = self._normalize_source_question(source_message)
+        if variant == "A":
+            return base
+
+        alt = self._build_reframed_from_source(source_message)
+        return self._match_source_tone(alt, source_message)
+
+    def _build_clarified_from_source(self, source_message: str) -> str:
+        root = self._normalize_source_question(source_message).rstrip("?")
+        lowered = root.lower()
+        if lowered.startswith("where "):
+            candidate = f"{root}, with options by vibe, budget, and travel time?"
+        elif lowered.startswith("what "):
+            candidate = f"{root}, with assumptions made explicit and options narrowed?"
+        elif lowered.startswith("how "):
+            candidate = f"{root}, with concrete steps and realistic trade-offs?"
+        else:
+            candidate = f"{root}, with the key assumptions made explicit?"
+        return self._match_source_tone(candidate, source_message)
+
+    def _build_reframed_from_source(self, source_message: str) -> str:
+        root = self._normalize_source_question(source_message).rstrip("?")
+        lowered = root.lower()
+        if lowered.startswith("where "):
+            candidate = "which option best matches your budget, energy, and vibe for this plan?"
+        elif lowered.startswith("what "):
+            candidate = "what reframed question would optimize the best long-term outcome for this goal?"
+        elif lowered.startswith("how "):
+            candidate = "how can this be reframed to maximize outcome quality, not just quick output?"
+        else:
+            candidate = f"{root}, optimized for the deeper outcome you actually want?"
+        return self._match_source_tone(candidate, source_message)
+
+    def _normalize_source_question(self, source_message: str) -> str:
+        cleaned = " ".join((source_message or "").split()).strip()
+        if not cleaned:
+            return "What is the best way to ask this?"
+        cleaned = cleaned.rstrip(".!;: ")
+        if not cleaned.endswith("?"):
+            cleaned = f"{cleaned}?"
+        return self._match_source_tone(cleaned, source_message)
+
+    def _match_source_tone(self, text: str, source_message: str) -> str:
+        letters = [ch for ch in source_message if ch.isalpha()]
+        lowercase_source = bool(letters) and all(ch.islower() for ch in letters)
+        if lowercase_source:
+            return text.lower()
+        return text
 
     def _infer_latent_goal(self, message: str) -> str:
         lowered = message.lower()

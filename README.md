@@ -19,6 +19,8 @@ Open `.env` and paste your API key. Then switch backend to `openai`.
 ```env
 PROMPT_COACH_BACKEND=openai
 PROMPT_COACH_MODEL=gpt-4.1-nano
+PROMPT_COACH_ANSWER_MODEL=gpt-4.1-mini
+PROMPT_COACH_ENABLE_WEB_SEARCH=true
 OPENAI_API_KEY=PASTE_YOUR_OPENAI_API_KEY_HERE
 ```
 
@@ -76,6 +78,7 @@ Returns one direct answer without generating A/B prompts first.
 - If `PROMPT_COACH_BACKEND=openai` and the key is missing/invalid, the API returns a clear `400` error.
 - If backend is `mock`, no external model is called.
 - `.env` is local-only and ignored by git. Commit only `.env.example`.
+- Live web retrieval is enabled in both `A/B` answer mode and `Direct` mode when `PROMPT_COACH_ENABLE_WEB_SEARCH=true`.
 
 ## Test
 

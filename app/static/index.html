@@ -3,18 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Prompt Clarifier / Prompt Coach</title>
+    <title>Prompt Coach</title>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
       :root {
-        --bg-1: #f4f2e8;
-        --bg-2: #d8e2d0;
-        --card: #fffef7;
-        --ink: #1d2a25;
-        --muted: #4f5f58;
-        --line: #b6c4b2;
-        --accent: #0f766e;
+        --bg: #edf3ee;
+        --panel: #f8fbf8;
+        --line: #c9d7ce;
+        --text: #1f2f27;
+        --muted: #607468;
+        --user: #dff1ea;
+        --assistant: #ffffff;
+        --accent: #0e7a67;
         --accent-2: #ea580c;
       }
 
@@ -24,134 +25,133 @@
 
       body {
         margin: 0;
-        min-height: 100vh;
-        font-family: 'Space Grotesk', sans-serif;
-        color: var(--ink);
         background:
-          radial-gradient(circle at 12% 18%, rgba(15, 118, 110, 0.18), transparent 40%),
-          radial-gradient(circle at 86% 10%, rgba(234, 88, 12, 0.12), transparent 35%),
-          linear-gradient(165deg, var(--bg-1), var(--bg-2));
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
+          radial-gradient(circle at 10% 10%, rgba(14, 122, 103, 0.13), transparent 38%),
+          radial-gradient(circle at 92% 8%, rgba(234, 88, 12, 0.1), transparent 35%),
+          var(--bg);
+        color: var(--text);
+        font-family: 'Manrope', sans-serif;
+        min-height: 100vh;
+        padding: 16px;
       }
 
-      .app-shell {
-        width: min(1100px, 100%);
-        background: rgba(255, 254, 247, 0.88);
+      .app {
+        height: calc(100vh - 32px);
+        max-width: 1060px;
+        margin: 0 auto;
         border: 1px solid var(--line);
-        border-radius: 24px;
-        box-shadow: 0 20px 50px rgba(29, 42, 37, 0.15);
+        border-radius: 20px;
+        background: rgba(248, 251, 248, 0.92);
+        box-shadow: 0 20px 50px rgba(29, 46, 38, 0.12);
+        display: flex;
+        flex-direction: column;
         overflow: hidden;
       }
 
-      .header {
-        padding: 18px 22px;
+      .topbar {
         border-bottom: 1px solid var(--line);
-        background: linear-gradient(90deg, rgba(15, 118, 110, 0.1), rgba(234, 88, 12, 0.08));
+        padding: 16px 20px;
+        background: linear-gradient(90deg, rgba(14, 122, 103, 0.08), rgba(234, 88, 12, 0.06));
       }
 
-      .header h1 {
+      .topbar h1 {
         margin: 0;
-        font-size: 1.12rem;
-        letter-spacing: 0.02em;
+        font-size: 1.18rem;
       }
 
-      .header p {
+      .topbar p {
         margin: 6px 0 0;
         color: var(--muted);
         font-size: 0.92rem;
       }
 
-      .chat-window {
-        padding: 18px;
-        max-height: 68vh;
+      .chat {
+        flex: 1;
         overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-      }
-
-      .bubble {
-        max-width: 90%;
-        border-radius: 14px;
-        padding: 12px 14px;
-        border: 1px solid var(--line);
-        background: var(--card);
-      }
-
-      .bubble.user {
-        margin-left: auto;
-        background: #e6f4f1;
-      }
-
-      .section-title {
-        margin: 0 0 8px;
-        font-size: 0.9rem;
-        color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-      }
-
-      .clarifier-card {
-        width: 100%;
-        border: 1px solid var(--line);
-        border-radius: 16px;
-        background: var(--card);
-        padding: 14px;
-      }
-
-      .variant-stack {
+        padding: 18px;
         display: flex;
         flex-direction: column;
         gap: 12px;
       }
 
-      .variant {
+      .row {
+        display: flex;
+      }
+
+      .row.user {
+        justify-content: flex-end;
+      }
+
+      .row.assistant {
+        justify-content: flex-start;
+      }
+
+      .bubble {
+        width: min(860px, 100%);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--assistant);
+        padding: 12px 14px;
+      }
+
+      .row.user .bubble {
+        width: auto;
+        max-width: min(700px, 86%);
+        background: var(--user);
+      }
+
+      .bubble.coach {
+        background: #f9fcfa;
+      }
+
+      .small {
+        margin: 0 0 10px;
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+
+      .option-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .option {
         border: 1px solid var(--line);
         border-radius: 12px;
-        padding: 12px;
+        padding: 10px;
         background: #fff;
       }
 
-      .variant h3 {
-        margin: 0 0 8px;
+      .option h3 {
+        margin: 0 0 6px;
+        font-size: 0.96rem;
       }
 
-      .variant p {
-        margin: 0 0 10px;
+      .option p {
+        margin: 0;
         font-family: 'IBM Plex Mono', monospace;
-        font-size: 0.87rem;
+        font-size: 0.84rem;
         line-height: 1.45;
+        white-space: pre-wrap;
       }
 
-      .reason {
-        color: var(--muted);
-        font-size: 0.85rem;
-      }
-
-      .actions {
-        margin-top: 10px;
+      .pick-row {
+        margin-top: 12px;
         display: flex;
-        gap: 8px;
         flex-wrap: wrap;
+        gap: 8px;
       }
 
       button {
         border: 1px solid var(--line);
         border-radius: 999px;
         background: #fff;
-        color: var(--ink);
-        padding: 8px 12px;
-        font-family: 'Space Grotesk', sans-serif;
-        font-weight: 600;
+        color: var(--text);
+        padding: 8px 13px;
+        font-family: 'Manrope', sans-serif;
+        font-weight: 700;
         cursor: pointer;
-      }
-
-      button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
       }
 
       button.primary {
@@ -166,149 +166,169 @@
         color: #fff;
       }
 
-      .results {
-        margin-top: 12px;
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 12px;
+      button:disabled {
+        opacity: 0.62;
+        cursor: not-allowed;
       }
 
-      .results.two {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .result-card {
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        padding: 12px;
-        background: #fff;
-      }
-
-      .result-card pre {
-        white-space: pre-wrap;
-        margin: 0;
-        font-family: 'IBM Plex Mono', monospace;
-        font-size: 0.86rem;
-        line-height: 1.5;
-      }
-
-      .pending-card {
-        width: 100%;
-        border: 1px solid var(--line);
-        border-radius: 16px;
-        background: #f4f8f6;
-        padding: 14px;
+      .answer-tag {
+        margin: 0 0 8px;
         color: var(--muted);
+        font-size: 0.84rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
 
-      .loading-row {
+      .answer-body {
+        font-size: 0.96rem;
+        line-height: 1.6;
+      }
+
+      .answer-body p,
+      .answer-body ul,
+      .answer-body ol,
+      .answer-body h1,
+      .answer-body h2,
+      .answer-body h3 {
+        margin: 0 0 10px;
+      }
+
+      .answer-body ul,
+      .answer-body ol {
+        padding-left: 22px;
+      }
+
+      .answer-body a {
+        color: var(--accent);
+      }
+
+      .typing {
         display: inline-flex;
         align-items: center;
         gap: 8px;
+        color: var(--muted);
       }
 
-      .spinner {
-        width: 14px;
-        height: 14px;
-        border: 2px solid #b7c9c1;
-        border-top-color: var(--accent);
+      .dots {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .dots span {
+        width: 6px;
+        height: 6px;
         border-radius: 50%;
-        animation: spin 0.8s linear infinite;
+        background: #98ab9f;
+        animation: blink 1s infinite ease-in-out;
       }
 
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
+      .dots span:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+
+      .dots span:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+
+      @keyframes blink {
+        0%,
+        80%,
+        100% {
+          opacity: 0.25;
+        }
+        40% {
+          opacity: 1;
         }
       }
 
       .composer {
         border-top: 1px solid var(--line);
-        padding: 14px;
-        display: flex;
+        padding: 12px 14px 14px;
+        background: var(--panel);
+      }
+
+      .composer-grid {
+        display: grid;
+        grid-template-columns: 1fr auto;
         gap: 10px;
-        align-items: flex-end;
+        align-items: end;
       }
 
-      .button-row {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-
-      .composer textarea {
+      textarea {
         width: 100%;
-        min-height: 58px;
-        max-height: 140px;
+        min-height: 60px;
+        max-height: 170px;
         resize: vertical;
         border: 1px solid var(--line);
-        border-radius: 12px;
-        padding: 10px;
-        font-family: 'Space Grotesk', sans-serif;
+        border-radius: 14px;
+        padding: 11px;
+        font-family: 'Manrope', sans-serif;
+        font-size: 1rem;
         background: #fff;
       }
 
-      .status {
-        padding: 0 14px 12px;
-        color: var(--muted);
-        font-size: 0.85rem;
+      .composer-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
       }
 
-      @media (max-width: 880px) {
-        .results.two {
+      .status {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+
+      @media (max-width: 760px) {
+        .composer-grid {
           grid-template-columns: 1fr;
         }
 
-        .chat-window {
-          max-height: 62vh;
+        .composer-actions {
+          flex-direction: row;
+        }
+
+        .row.user .bubble,
+        .bubble {
+          max-width: 100%;
+          width: 100%;
         }
       }
     </style>
   </head>
   <body>
-    <div class="app-shell">
-      <div class="header">
-        <h1>Prompt Clarifier / Prompt Coach</h1>
-        <p>Choose A/B to generate two prompt versions, or Direct to ask GPT immediately.</p>
-      </div>
+    <div class="app">
+      <header class="topbar">
+        <h1>Prompt Coach</h1>
+        <p>What do you want to ask ChatGPT?</p>
+      </header>
 
-      <div id="chatWindow" class="chat-window"></div>
+      <main id="chat" class="chat"></main>
 
-      <form id="composer" class="composer">
-        <textarea id="messageInput" placeholder="Type your raw prompt..."></textarea>
-        <div class="button-row">
-          <button id="abBtn" class="primary" type="button">A/B</button>
-          <button id="directBtn" class="secondary" type="button">Direct</button>
+      <div class="composer">
+        <div class="composer-grid">
+          <textarea id="messageInput" placeholder="What do you want to ask ChatGPT?"></textarea>
+          <div class="composer-actions">
+            <button id="abBtn" class="primary" type="button">A/B</button>
+            <button id="directBtn" class="secondary" type="button">Direct</button>
+          </div>
         </div>
-      </form>
-      <div id="status" class="status">Ready.</div>
+        <div id="status" class="status">What do you want to ask ChatGPT?</div>
+      </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
     <script>
-      const chatWindow = document.getElementById('chatWindow');
-      const composer = document.getElementById('composer');
+      const chatEl = document.getElementById('chat');
       const messageInput = document.getElementById('messageInput');
-      const statusEl = document.getElementById('status');
       const abBtn = document.getElementById('abBtn');
       const directBtn = document.getElementById('directBtn');
+      const statusEl = document.getElementById('status');
 
-      let latestMessage = '';
-      let latestClarifier = null;
-
-      function setStatus(text) {
-        statusEl.textContent = text;
-      }
-
-      function bubble(text, role = 'assistant') {
-        const node = document.createElement('div');
-        node.className = `bubble ${role}`;
-        node.textContent = text;
-        chatWindow.appendChild(node);
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-      }
-
-      function escapeHTML(str) {
-        return str
+      function escapeHTML(value) {
+        return String(value || '')
           .replaceAll('&', '&amp;')
           .replaceAll('<', '&lt;')
           .replaceAll('>', '&gt;')
@@ -316,116 +336,141 @@
           .replaceAll("'", '&#039;');
       }
 
-      function createPendingCard(message) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'pending-card';
-        wrapper.innerHTML = `<div class="loading-row"><span class="spinner"></span><span>${escapeHTML(message)}</span></div>`;
-        chatWindow.appendChild(wrapper);
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-        return wrapper;
-      }
-
-      function setComposerLoading(isLoading, label) {
-        abBtn.disabled = isLoading;
-        directBtn.disabled = isLoading;
-        messageInput.disabled = isLoading;
-        if (isLoading) {
-          setStatus(label);
+      function markdownToHtml(text) {
+        const src = text || '';
+        if (!window.marked) {
+          return `<p>${escapeHTML(src).replaceAll('\n', '<br>')}</p>`;
         }
+        const parsed = window.marked.parse(src, { gfm: true, breaks: true });
+        let safe = parsed;
+        if (window.DOMPurify) {
+          safe = window.DOMPurify.sanitize(parsed);
+        }
+        const template = document.createElement('template');
+        template.innerHTML = safe;
+        template.content.querySelectorAll('a[href]').forEach((anchor) => {
+          anchor.setAttribute('target', '_blank');
+          anchor.setAttribute('rel', 'noopener noreferrer');
+        });
+        return template.innerHTML;
       }
 
-      function renderClarifierCard(data, wrapper) {
-        wrapper.className = 'clarifier-card';
-        wrapper.innerHTML = `
-          <div class="variant-stack">
-            <div class="variant">
-              <h3>Prompt A · Clarified Intent</h3>
+      function forceExternalLinksToNewTab(scope = document) {
+        scope.querySelectorAll('a[href]').forEach((anchor) => {
+          anchor.setAttribute('target', '_blank');
+          anchor.setAttribute('rel', 'noopener noreferrer');
+        });
+      }
+
+      function setStatus(text) {
+        statusEl.textContent = text;
+      }
+
+      function setComposerBusy(isBusy, statusText) {
+        abBtn.disabled = isBusy;
+        directBtn.disabled = isBusy;
+        messageInput.disabled = isBusy;
+        setStatus(statusText);
+      }
+
+      function createRow(role) {
+        const row = document.createElement('div');
+        row.className = `row ${role}`;
+
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+
+        row.appendChild(bubble);
+        chatEl.appendChild(row);
+        chatEl.scrollTop = chatEl.scrollHeight;
+        return bubble;
+      }
+
+      function addUserMessage(text) {
+        const bubble = createRow('user');
+        bubble.textContent = text;
+      }
+
+      function addTypingMessage(label) {
+        const bubble = createRow('assistant');
+        bubble.innerHTML = `
+          <div class="typing">
+            <span>${escapeHTML(label)}</span>
+            <span class="dots"><span></span><span></span><span></span></span>
+          </div>
+        `;
+        return bubble;
+      }
+
+      function renderClarifierOptions(bubble, data, originalMessage) {
+        bubble.classList.add('coach');
+        bubble.innerHTML = `
+          <p class="small">Version A and Version B are ready. Do you want Answer A, Answer B, or both?</p>
+          <div class="option-stack">
+            <div class="option">
+              <h3>Option A</h3>
               <p>${escapeHTML(data.prompt_a_clarified)}</p>
-              <div class="reason">${escapeHTML(data.why_a)}</div>
             </div>
-            <div class="variant">
-              <h3>Prompt B · Vision B</h3>
+            <div class="option">
+              <h3>Option B</h3>
               <p>${escapeHTML(data.prompt_b_vision)}</p>
-              <div class="reason">${escapeHTML(data.why_b)}</div>
             </div>
           </div>
-          <p><strong>Do you want Answer A, Answer B, or both?</strong></p>
-          <div class="actions">
-            <button type="button" data-selection="A">Use A</button>
-            <button type="button" class="secondary" data-selection="B">Use B</button>
-            <button type="button" class="primary" data-selection="A,B">Use Both</button>
+          <div class="pick-row">
+            <button type="button" data-choice="A">Answer A</button>
+            <button type="button" data-choice="B" class="secondary">Answer B</button>
+            <button type="button" data-choice="A,B" class="primary">Answer Both</button>
           </div>
-          <div id="resultContainer" class="results"></div>
         `;
 
-        wrapper.querySelectorAll('button[data-selection]').forEach((btn) => {
-          btn.addEventListener('click', async () => {
-            const selected = btn.getAttribute('data-selection').split(',');
-            await runSelection(
-              selected,
-              wrapper.querySelector('#resultContainer'),
-              wrapper.querySelectorAll('button[data-selection]'),
-              data,
-            );
+        const actionButtons = bubble.querySelectorAll('button[data-choice]');
+        actionButtons.forEach((button) => {
+          button.addEventListener('click', async () => {
+            const selected = button.dataset.choice.split(',');
+            await runOptionAnswer(selected, originalMessage, data, actionButtons);
           });
         });
-        chatWindow.scrollTop = chatWindow.scrollHeight;
       }
 
-      function renderDirectAnswerCard(data, wrapper) {
-        wrapper.className = 'result-card';
-        wrapper.innerHTML = `
-          <p class="section-title">Direct Answer</p>
-          <p><strong>Prompt sent:</strong></p>
-          <pre>${escapeHTML(data.prompt)}</pre>
-          <p><strong>Model response:</strong></p>
-          <pre>${escapeHTML(data.answer)}</pre>
-        `;
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-      }
-
-      async function runSelection(selected, container, actionButtons, clarifierData) {
+      async function runOptionAnswer(selected, originalMessage, data, actionButtons) {
         actionButtons.forEach((button) => {
           button.disabled = true;
         });
-        setStatus(`Running variant ${selected.join('+')}...`);
-        container.innerHTML = `<div class="pending-card"><div class="loading-row"><span class="spinner"></span><span>Generating answer ${selected.join('+')}...</span></div></div>`;
-        container.className = selected.length === 2 ? 'results two' : 'results';
+
+        setStatus(`Generating answer ${selected.join('+')}...`);
+        const typingBubble = addTypingMessage(`Generating answer ${selected.join('+')}...`);
 
         try {
           const response = await fetch('/v1/execute', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              original_message: latestMessage,
+              original_message: originalMessage,
               selected,
-              prompt_a_clarified: clarifierData.prompt_a_clarified,
-              prompt_b_vision: clarifierData.prompt_b_vision,
+              prompt_a_clarified: data.prompt_a_clarified,
+              prompt_b_vision: data.prompt_b_vision,
             }),
           });
 
           if (!response.ok) {
             const errorText = await response.text();
-            container.innerHTML = `<div class="pending-card">Execution failed: ${escapeHTML(errorText)}</div>`;
+            typingBubble.innerHTML = `<p class="small">Execution failed: ${escapeHTML(errorText)}</p>`;
             setStatus('Execution failed.');
             return;
           }
 
-          container.innerHTML = '';
           const payload = await response.json();
+          typingBubble.parentElement.remove();
+
           payload.runs.forEach((run) => {
-            const card = document.createElement('div');
-            card.className = 'result-card';
-            card.innerHTML = `
-              <p class="section-title">Variant ${escapeHTML(run.variant)}</p>
-              <p><strong>Prompt sent:</strong></p>
-              <pre>${escapeHTML(run.prompt)}</pre>
-              <p><strong>Model response:</strong></p>
-              <pre>${escapeHTML(run.answer)}</pre>
+            const answerBubble = createRow('assistant');
+            answerBubble.innerHTML = `
+              <p class="answer-tag">Answer ${escapeHTML(run.variant)}</p>
+              <div class="answer-body">${markdownToHtml(run.answer)}</div>
             `;
-            container.appendChild(card);
           });
-          setStatus(`Execution complete for ${selected.join('+')}.`);
+
+          setStatus(`Answer ${selected.join('+')} ready.`);
         } finally {
           actionButtons.forEach((button) => {
             button.disabled = false;
@@ -433,19 +478,18 @@
         }
       }
 
-      async function handleAbMode() {
+      async function runAB() {
         const message = messageInput.value.trim();
         if (!message) {
           setStatus('Please enter a prompt.');
           return;
         }
 
-        latestMessage = message;
-        latestClarifier = null;
-        bubble(message, 'user');
-        const pendingCard = createPendingCard('Generating Prompt A and Prompt B...');
+        addUserMessage(message);
         messageInput.value = '';
-        setComposerLoading(true, 'Generating Prompt A/B...');
+
+        const typingBubble = addTypingMessage('Creating options A and B...');
+        setComposerBusy(true, 'Creating options A/B...');
 
         try {
           const response = await fetch('/v1/clarify', {
@@ -456,32 +500,31 @@
 
           if (!response.ok) {
             const errorText = await response.text();
-            pendingCard.className = 'pending-card';
-            pendingCard.textContent = `Clarify failed: ${errorText}`;
-            setStatus('Clarify failed.');
+            typingBubble.innerHTML = `<p class="small">A/B failed: ${escapeHTML(errorText)}</p>`;
+            setStatus('A/B failed.');
             return;
           }
 
-          latestClarifier = await response.json();
-          renderClarifierCard(latestClarifier, pendingCard);
-          setStatus('Prompt A/B ready.');
+          const data = await response.json();
+          renderClarifierOptions(typingBubble, data, message);
+          setStatus('A/B ready. Choose A, B, or both.');
         } finally {
-          setComposerLoading(false, 'Ready.');
+          setComposerBusy(false, 'Ready.');
         }
       }
 
-      async function handleDirectMode() {
+      async function runDirect() {
         const message = messageInput.value.trim();
         if (!message) {
           setStatus('Please enter a prompt.');
           return;
         }
 
-        latestMessage = message;
-        bubble(message, 'user');
-        const pendingCard = createPendingCard('Direct mode: asking GPT...');
+        addUserMessage(message);
         messageInput.value = '';
-        setComposerLoading(true, 'GPT is replying...');
+
+        const typingBubble = addTypingMessage('Thinking...');
+        setComposerBusy(true, 'GPT is replying...');
 
         try {
           const response = await fetch('/v1/direct', {
@@ -492,22 +535,45 @@
 
           if (!response.ok) {
             const errorText = await response.text();
-            pendingCard.className = 'pending-card';
-            pendingCard.textContent = `Direct mode failed: ${errorText}`;
-            setStatus('Direct mode failed.');
+            typingBubble.innerHTML = `<p class="small">Direct failed: ${escapeHTML(errorText)}</p>`;
+            setStatus('Direct failed.');
             return;
           }
 
-          const payload = await response.json();
-          renderDirectAnswerCard(payload, pendingCard);
+          const data = await response.json();
+          typingBubble.innerHTML = `
+            <p class="answer-tag">Direct Answer</p>
+            <div class="answer-body">${markdownToHtml(data.answer)}</div>
+          `;
           setStatus('Direct answer ready.');
         } finally {
-          setComposerLoading(false, 'Ready.');
+          setComposerBusy(false, 'Ready.');
         }
       }
 
-      abBtn.addEventListener('click', handleAbMode);
-      directBtn.addEventListener('click', handleDirectMode);
+      messageInput.addEventListener('keydown', (event) => {
+        if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+          event.preventDefault();
+          runAB();
+        }
+      });
+
+      abBtn.addEventListener('click', runAB);
+      directBtn.addEventListener('click', runDirect);
+
+      document.addEventListener('click', (event) => {
+        const link = event.target.closest('a[href]');
+        if (!link) {
+          return;
+        }
+        const href = link.getAttribute('href') || '';
+        if (href.startsWith('http://') || href.startsWith('https://')) {
+          link.setAttribute('target', '_blank');
+          link.setAttribute('rel', 'noopener noreferrer');
+        }
+      });
+
+      forceExternalLinksToNewTab(document);
     </script>
   </body>
 </html>
