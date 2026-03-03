@@ -1,0 +1,27 @@
+[project]
+name = "prompt-clarifier-coach"
+version = "0.1.0"
+description = "Prompt Clarifier / Prompt Coach MVP"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.115.0,<1.0.0",
+  "uvicorn[standard]>=0.30.0,<1.0.0",
+  "pydantic>=2.7.0,<3.0.0",
+  "httpx>=0.27.0,<1.0.0",
+  "openai>=1.0.0,<2.0.0",
+  "python-dotenv>=1.0.0,<2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0,<9.0.0",
+]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"

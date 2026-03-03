@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prompt Clarifier / Prompt Coach</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+      :root {
+        --bg-1: #f4f2e8;
+        --bg-2: #d8e2d0;
+        --card: #fffef7;
+        --ink: #1d2a25;
+        --muted: #4f5f58;
+        --line: #b6c4b2;
+        --accent: #0f766e;
+        --accent-2: #ea580c;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: 'Space Grotesk', sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 12% 18%, rgba(15, 118, 110, 0.18), transparent 40%),
+          radial-gradient(circle at 86% 10%, rgba(234, 88, 12, 0.12), transparent 35%),
+          linear-gradient(165deg, var(--bg-1), var(--bg-2));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .app-shell {
+        width: min(1100px, 100%);
+        background: rgba(255, 254, 247, 0.88);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        box-shadow: 0 20px 50px rgba(29, 42, 37, 0.15);
+        overflow: hidden;
+      }
+
+      .header {
+        padding: 18px 22px;
+        border-bottom: 1px solid var(--line);
+        background: linear-gradient(90deg, rgba(15, 118, 110, 0.1), rgba(234, 88, 12, 0.08));
+      }
+
+      .header h1 {
+        margin: 0;
+        font-size: 1.12rem;
+        letter-spacing: 0.02em;
+      }
+
+      .header p {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .chat-window {
+        padding: 18px;
+        max-height: 68vh;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .bubble {
+        max-width: 90%;
+        border-radius: 14px;
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        background: var(--card);
+      }
+
+      .bubble.user {
+        margin-left: auto;
+        background: #e6f4f1;
+      }
+
+      .section-title {
+        margin: 0 0 8px;
+        font-size: 0.9rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .clarifier-card {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--card);
+        padding: 14px;
+      }
+
+      .variant-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .variant {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+        background: #fff;
+      }
+
+      .variant h3 {
+        margin: 0 0 8px;
+      }
+
+      .variant p {
+        margin: 0 0 10px;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 0.87rem;
+        line-height: 1.45;
+      }
+
+      .reason {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .actions {
+        margin-top: 10px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #fff;
+        color: var(--ink);
+        padding: 8px 12px;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      button.primary {
+        border-color: transparent;
+        background: var(--accent);
+        color: #fff;
+      }
+
+      button.secondary {
+        border-color: transparent;
+        background: var(--accent-2);
+        color: #fff;
+      }
+
+      .results {
+        margin-top: 12px;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .results.two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .result-card {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+        background: #fff;
+      }
+
+      .result-card pre {
+        white-space: pre-wrap;
+        margin: 0;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 0.86rem;
+        line-height: 1.5;
+      }
+
+      .pending-card {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: #f4f8f6;
+        padding: 14px;
+        color: var(--muted);
+      }
+
+      .loading-row {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .spinner {
+        width: 14px;
+        height: 14px;
+        border: 2px solid #b7c9c1;
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .composer {
+        border-top: 1px solid var(--line);
+        padding: 14px;
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+      }
+
+      .button-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .composer textarea {
+        width: 100%;
+        min-height: 58px;
+        max-height: 140px;
+        resize: vertical;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px;
+        font-family: 'Space Grotesk', sans-serif;
+        background: #fff;
+      }
+
+      .status {
+        padding: 0 14px 12px;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      @media (max-width: 880px) {
+        .results.two {
+          grid-template-columns: 1fr;
+        }
+
+        .chat-window {
+          max-height: 62vh;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <div class="header">
+        <h1>Prompt Clarifier / Prompt Coach</h1>
+        <p>Choose A/B to generate two prompt versions, or Direct to ask GPT immediately.</p>
+      </div>
+
+      <div id="chatWindow" class="chat-window"></div>
+
+      <form id="composer" class="composer">
+        <textarea id="messageInput" placeholder="Type your raw prompt..."></textarea>
+        <div class="button-row">
+          <button id="abBtn" class="primary" type="button">A/B</button>
+          <button id="directBtn" class="secondary" type="button">Direct</button>
+        </div>
+      </form>
+      <div id="status" class="status">Ready.</div>
+    </div>
+
+    <script>
+      const chatWindow = document.getElementById('chatWindow');
+      const composer = document.getElementById('composer');
+      const messageInput = document.getElementById('messageInput');
+      const statusEl = document.getElementById('status');
+      const abBtn = document.getElementById('abBtn');
+      const directBtn = document.getElementById('directBtn');
+
+      let latestMessage = '';
+      let latestClarifier = null;
+
+      function setStatus(text) {
+        statusEl.textContent = text;
+      }
+
+      function bubble(text, role = 'assistant') {
+        const node = document.createElement('div');
+        node.className = `bubble ${role}`;
+        node.textContent = text;
+        chatWindow.appendChild(node);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+      }
+
+      function escapeHTML(str) {
+        return str
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#039;');
+      }
+
+      function createPendingCard(message) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'pending-card';
+        wrapper.innerHTML = `<div class="loading-row"><span class="spinner"></span><span>${escapeHTML(message)}</span></div>`;
+        chatWindow.appendChild(wrapper);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+        return wrapper;
+      }
+
+      function setComposerLoading(isLoading, label) {
+        abBtn.disabled = isLoading;
+        directBtn.disabled = isLoading;
+        messageInput.disabled = isLoading;
+        if (isLoading) {
+          setStatus(label);
+        }
+      }
+
+      function renderClarifierCard(data, wrapper) {
+        wrapper.className = 'clarifier-card';
+        wrapper.innerHTML = `
+          <div class="variant-stack">
+            <div class="variant">
+              <h3>Prompt A · Clarified Intent</h3>
+              <p>${escapeHTML(data.prompt_a_clarified)}</p>
+              <div class="reason">${escapeHTML(data.why_a)}</div>
+            </div>
+            <div class="variant">
+              <h3>Prompt B · Vision B</h3>
+              <p>${escapeHTML(data.prompt_b_vision)}</p>
+              <div class="reason">${escapeHTML(data.why_b)}</div>
+            </div>
+          </div>
+          <p><strong>Do you want Answer A, Answer B, or both?</strong></p>
+          <div class="actions">
+            <button type="button" data-selection="A">Use A</button>
+            <button type="button" class="secondary" data-selection="B">Use B</button>
+            <button type="button" class="primary" data-selection="A,B">Use Both</button>
+          </div>
+          <div id="resultContainer" class="results"></div>
+        `;
+
+        wrapper.querySelectorAll('button[data-selection]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const selected = btn.getAttribute('data-selection').split(',');
+            await runSelection(
+              selected,
+              wrapper.querySelector('#resultContainer'),
+              wrapper.querySelectorAll('button[data-selection]'),
+              data,
+            );
+          });
+        });
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+      }
+
+      function renderDirectAnswerCard(data, wrapper) {
+        wrapper.className = 'result-card';
+        wrapper.innerHTML = `
+          <p class="section-title">Direct Answer</p>
+          <p><strong>Prompt sent:</strong></p>
+          <pre>${escapeHTML(data.prompt)}</pre>
+          <p><strong>Model response:</strong></p>
+          <pre>${escapeHTML(data.answer)}</pre>
+        `;
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+      }
+
+      async function runSelection(selected, container, actionButtons, clarifierData) {
+        actionButtons.forEach((button) => {
+          button.disabled = true;
+        });
+        setStatus(`Running variant ${selected.join('+')}...`);
+        container.innerHTML = `<div class="pending-card"><div class="loading-row"><span class="spinner"></span><span>Generating answer ${selected.join('+')}...</span></div></div>`;
+        container.className = selected.length === 2 ? 'results two' : 'results';
+
+        try {
+          const response = await fetch('/v1/execute', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              original_message: latestMessage,
+              selected,
+              prompt_a_clarified: clarifierData.prompt_a_clarified,
+              prompt_b_vision: clarifierData.prompt_b_vision,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            container.innerHTML = `<div class="pending-card">Execution failed: ${escapeHTML(errorText)}</div>`;
+            setStatus('Execution failed.');
+            return;
+          }
+
+          container.innerHTML = '';
+          const payload = await response.json();
+          payload.runs.forEach((run) => {
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            card.innerHTML = `
+              <p class="section-title">Variant ${escapeHTML(run.variant)}</p>
+              <p><strong>Prompt sent:</strong></p>
+              <pre>${escapeHTML(run.prompt)}</pre>
+              <p><strong>Model response:</strong></p>
+              <pre>${escapeHTML(run.answer)}</pre>
+            `;
+            container.appendChild(card);
+          });
+          setStatus(`Execution complete for ${selected.join('+')}.`);
+        } finally {
+          actionButtons.forEach((button) => {
+            button.disabled = false;
+          });
+        }
+      }
+
+      async function handleAbMode() {
+        const message = messageInput.value.trim();
+        if (!message) {
+          setStatus('Please enter a prompt.');
+          return;
+        }
+
+        latestMessage = message;
+        latestClarifier = null;
+        bubble(message, 'user');
+        const pendingCard = createPendingCard('Generating Prompt A and Prompt B...');
+        messageInput.value = '';
+        setComposerLoading(true, 'Generating Prompt A/B...');
+
+        try {
+          const response = await fetch('/v1/clarify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message, locale: 'en-US' }),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            pendingCard.className = 'pending-card';
+            pendingCard.textContent = `Clarify failed: ${errorText}`;
+            setStatus('Clarify failed.');
+            return;
+          }
+
+          latestClarifier = await response.json();
+          renderClarifierCard(latestClarifier, pendingCard);
+          setStatus('Prompt A/B ready.');
+        } finally {
+          setComposerLoading(false, 'Ready.');
+        }
+      }
+
+      async function handleDirectMode() {
+        const message = messageInput.value.trim();
+        if (!message) {
+          setStatus('Please enter a prompt.');
+          return;
+        }
+
+        latestMessage = message;
+        bubble(message, 'user');
+        const pendingCard = createPendingCard('Direct mode: asking GPT...');
+        messageInput.value = '';
+        setComposerLoading(true, 'GPT is replying...');
+
+        try {
+          const response = await fetch('/v1/direct', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message }),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            pendingCard.className = 'pending-card';
+            pendingCard.textContent = `Direct mode failed: ${errorText}`;
+            setStatus('Direct mode failed.');
+            return;
+          }
+
+          const payload = await response.json();
+          renderDirectAnswerCard(payload, pendingCard);
+          setStatus('Direct answer ready.');
+        } finally {
+          setComposerLoading(false, 'Ready.');
+        }
+      }
+
+      abBtn.addEventListener('click', handleAbMode);
+      directBtn.addEventListener('click', handleDirectMode);
+    </script>
+  </body>
+</html>
