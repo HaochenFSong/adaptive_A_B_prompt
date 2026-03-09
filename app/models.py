@@ -32,11 +32,25 @@ class ClarifyResponse(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
 
 
+class ConversationTurn(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=4000)
+
+    @field_validator("content")
+    @classmethod
+    def validate_content(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("content cannot be empty")
+        return stripped
+
+
 class ExecuteRequest(BaseModel):
     original_message: str = Field(min_length=1, max_length=2000)
     selected: list[Literal["A", "B"]]
     prompt_a_clarified: str | None = Field(default=None, max_length=4000)
     prompt_b_vision: str | None = Field(default=None, max_length=4000)
+    history: list[ConversationTurn] = Field(default_factory=list)
 
     @field_validator("original_message")
     @classmethod
@@ -70,6 +84,7 @@ class ExecuteResponse(BaseModel):
 
 class DirectAskRequest(BaseModel):
     message: str = Field(min_length=1, max_length=2000)
+    history: list[ConversationTurn] = Field(default_factory=list)
 
     @field_validator("message")
     @classmethod

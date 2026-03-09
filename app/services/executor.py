@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from app.models import DirectAskResponse, ExecuteRequest, ExecuteResponse, ExecuteRun
+from app.models import ConversationTurn, DirectAskResponse, ExecuteRequest, ExecuteResponse, ExecuteRun
 from app.services.clarifier import ClarifierService
 
 
@@ -37,22 +37,22 @@ class ExecutorService:
         runs: list[ExecuteRun] = []
         for variant in request.selected:
             prompt = prompts[variant]
-            answer = self._answer_prompt(prompt, variant)
+            answer = self._answer_prompt(prompt, variant, request.history)
             runs.append(ExecuteRun(variant=variant, prompt=prompt, answer=answer))
 
         return ExecuteResponse(runs=runs)
 
-    def ask_direct(self, message: str) -> DirectAskResponse:
-        answer = self._answer_prompt(message, "Direct")
+    def ask_direct(self, message: str, history: list[ConversationTurn] | None = None) -> DirectAskResponse:
+        answer = self._answer_prompt(message, "Direct", history)
         return DirectAskResponse(prompt=message, answer=answer)
 
-    def _answer_prompt(self, prompt: str, variant: str) -> str:
+    def _answer_prompt(self, prompt: str, variant: str, history: list[ConversationTurn] | None = None) -> str:
         if self._backend == "openai":
             if not self._api_key:
                 raise ValueError("OPENAI_API_KEY is required when PROMPT_COACH_BACKEND=openai")
             assert self._client is not None
             try:
-                response = self._create_response_with_optional_web(prompt, self._model)
+                response = self._create_response_with_optional_web(prompt, self._model, history or [])
                 output = getattr(response, "output_text", None)
                 if output and output.strip():
                     return output.strip()
@@ -65,7 +65,12 @@ class ExecutorService:
             f"Prompt used: {prompt}"
         )
 
-    def _create_response_with_optional_web(self, prompt: str, model: str) -> Any:
+    def _create_response_with_optional_web(
+        self,
+        prompt: str,
+        model: str,
+        history: list[ConversationTurn],
+    ) -> Any:
         assert self._client is not None
         input_payload = [
             {
@@ -75,8 +80,10 @@ class ExecutorService:
                     "use live web search to ground the answer in current information."
                 ),
             },
-            {"role": "user", "content": prompt},
         ]
+        for turn in history[-16:]:
+            input_payload.append({"role": turn.role, "content": turn.content})
+        input_payload.append({"role": "user", "content": prompt})
 
         kwargs: dict[str, Any] = {
             "model": model,

@@ -326,6 +326,8 @@
       const abBtn = document.getElementById('abBtn');
       const directBtn = document.getElementById('directBtn');
       const statusEl = document.getElementById('status');
+      const MAX_MEMORY_TURNS = 24;
+      const conversationHistory = [];
 
       function escapeHTML(value) {
         return String(value || '')
@@ -366,6 +368,31 @@
         statusEl.textContent = text;
       }
 
+      function addConversationTurn(role, content) {
+        const cleaned = String(content || '').trim();
+        if (!cleaned) {
+          return;
+        }
+        conversationHistory.push({
+          role,
+          content: cleaned.slice(0, 4000),
+        });
+        if (conversationHistory.length > MAX_MEMORY_TURNS) {
+          conversationHistory.splice(0, conversationHistory.length - MAX_MEMORY_TURNS);
+        }
+      }
+
+      function getHistoryPayload() {
+        return conversationHistory.slice(-16);
+      }
+
+      function buildContextString(historyTurns) {
+        return historyTurns
+          .map((turn) => `${turn.role}: ${turn.content}`)
+          .join('\n')
+          .slice(0, 1800);
+      }
+
       function setComposerBusy(isBusy, statusText) {
         abBtn.disabled = isBusy;
         directBtn.disabled = isBusy;
@@ -389,6 +416,7 @@
       function addUserMessage(text) {
         const bubble = createRow('user');
         bubble.textContent = text;
+        addConversationTurn('user', text);
       }
 
       function addTypingMessage(label) {
@@ -441,6 +469,7 @@
         const typingBubble = addTypingMessage(`Generating answer ${selected.join('+')}...`);
 
         try {
+          const history = getHistoryPayload();
           const response = await fetch('/v1/execute', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -449,6 +478,7 @@
               selected,
               prompt_a_clarified: data.prompt_a_clarified,
               prompt_b_vision: data.prompt_b_vision,
+              history,
             }),
           });
 
@@ -468,6 +498,7 @@
               <p class="answer-tag">Answer ${escapeHTML(run.variant)}</p>
               <div class="answer-body">${markdownToHtml(run.answer)}</div>
             `;
+            addConversationTurn('assistant', run.answer);
           });
 
           setStatus(`Answer ${selected.join('+')} ready.`);
@@ -485,6 +516,8 @@
           return;
         }
 
+        const priorHistory = getHistoryPayload();
+        const context = buildContextString(priorHistory);
         addUserMessage(message);
         messageInput.value = '';
 
@@ -495,7 +528,7 @@
           const response = await fetch('/v1/clarify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message, locale: 'en-US' }),
+            body: JSON.stringify({ message, locale: 'en-US', context }),
           });
 
           if (!response.ok) {
@@ -520,6 +553,7 @@
           return;
         }
 
+        const priorHistory = getHistoryPayload();
         addUserMessage(message);
         messageInput.value = '';
 
@@ -530,7 +564,7 @@
           const response = await fetch('/v1/direct', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message }),
+            body: JSON.stringify({ message, history: priorHistory }),
           });
 
           if (!response.ok) {
@@ -545,6 +579,7 @@
             <p class="answer-tag">Direct Answer</p>
             <div class="answer-body">${markdownToHtml(data.answer)}</div>
           `;
+          addConversationTurn('assistant', data.answer);
           setStatus('Direct answer ready.');
         } finally {
           setComposerBusy(false, 'Ready.');

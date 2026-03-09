@@ -57,6 +57,6 @@ def execute(request: ExecuteRequest) -> ExecuteResponse:
 @app.post("/v1/direct", response_model=DirectAskResponse)
 def direct(request: DirectAskRequest) -> DirectAskResponse:
     try:
-        return executor_service.ask_direct(request.message)
+        return executor_service.ask_direct(request.message, request.history)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
